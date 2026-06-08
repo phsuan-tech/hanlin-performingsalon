@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 翰林國中藝術表演沙龍 - 智慧滿版繪本</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        body { display: flex; flex-direction: column; font-family: "Noto Serif TC", "Songti TC", serif; background: #abb89e; margin: 0; height: 100vh; overflow: hidden; color: #2b332c; padding: 20px; box-sizing: border-box; }
+        #main-header { background: #fdfaf2; padding: 15px 40px; border-radius: 30px; box-shadow: 0 10px 30px rgba(90, 104, 68, 0.08); margin-bottom: 20px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; flex-shrink: 0; }
+        #main-header .sub-title { font-size: 14px; color: #5a6844; letter-spacing: 3px; margin-bottom: 5px; font-weight: 500; }
+        #main-header .main-title { font-size: 20px; color: #3d4a3e; font-weight: 700; margin: 0; letter-spacing: 1px; }
+        #main-content { flex: 1; display: flex; width: 100%; overflow: hidden; position: relative; }
+        
+        /* ─── 側邊欄（電腦版樣式） ─── */
+        #sidebar { width: 280px; background: #fdfaf2; padding: 30px 20px; box-sizing: border-box; box-shadow: 0 10px 30px rgba(90, 104, 68, 0.08); border-radius: 30px; z-index: 100; margin-right: 20px; display: flex; flex-direction: column; flex-shrink: 0; }
+        #sidebar h3 { color: #5a6844; border-bottom: 2px solid #edf0ea; padding-bottom: 15px; margin-top: 0; font-size: 16px; text-align: center; margin-bottom: 10px; }
+        #book-list { overflow-y: auto; flex: 1; margin-top: 10px; }
+        
+        .book-btn { display: block; width: 100%; padding: 12px 15px; margin: 8px 0; background: #5a6844; color: #fdfaf2; border: none; border-radius: 24px; cursor: pointer; text-align: left; font-size: 13px; font-weight: bold; transition: all 0.2s; box-shadow: 0 4px 12px rgba(90, 104, 68, 0.1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .book-btn:hover { background: #6a7a52; transform: translateY(-2px); }
+        .book-btn.active { background: #3d4a3e; box-shadow: inset 0 0 10px rgba(0,0,0,0.2); }
+        
+        /* ─── 💡 舞台容器優化：精準控制 16px 邊距 ─── */
+        #stage-container { 
+            flex: 1; background: #fdfaf2; border-radius: 30px; display: flex; flex-direction: column; 
+            justify-content: flex-start; align-items: center; 
+            padding: 16px; /* 四邊固定 16px */
+            padding-bottom: 80px; /* 僅底部留空間給絕對定位的控制鈕 */
+            perspective: 2500px; overflow: hidden; position: relative; box-sizing: border-box;
+        }
+        
+        /* 💡 書本主框架：改用百分比自適應填滿，扣除控制列與邊距，不再寫死固定寬高 */
+        .book-outer { 
+            width: calc(100% - 32px); 
+            height: calc(100% - 16px); 
+            position: relative; transform-style: preserve-3d; transform: rotateX(6deg); transition: transform 0.5s; flex-shrink: 0; 
+        }
+        
+        /* 電腦版單頁尺寸：寬度自動佔據書本主體的一半（50%） */
+        .page { width: 50%; height: 100%; padding: 50px 40px; box-sizing: border-box; background: #f7f0e1; position: absolute; top: 0; border: 1px solid #ebdcc5; backface-visibility: hidden; -webkit-backface-visibility: hidden; display: flex; flex-direction: column; overflow: hidden; transform: translateZ(0); }
+        .page-left { left: 0; border-radius: 24px 0 0 24px; border-right: none; transform-origin: right center; z-index: 2; }
+        .page-right { left: 50%; border-radius: 0 24px 24px 0; border-left: none; transform-origin: left center; z-index: 1; }
+
+        /* 書脊陰影 */
+        .line-left { background: linear-gradient(to right, #f7f0e1 93%, #d9cfb8 100%); }
+        .line-right { background: linear-gradient(to left, #f7f0e1 93%, #d9cfb8 100%); }
+
+        /* 封面滿版背景與底部懸浮文字框設計 */
+        .cover-full-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; padding-bottom: 40px; }
+        .cover-bg-img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+        .cover-text-box { position: relative; width: 88%; background: rgba(253, 250, 242, 0.92); padding: 20px 15px; border-radius: 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); text-align: center; border: 1px solid rgba(255,255,255,0.6); backdrop-filter: blur(8px); box-sizing: border-box; }
+        .cover-title { font-size: 22px; font-weight: 700; color: #3d4a3e; margin-bottom: 8px; display: block; line-height: 1.3; }
+        .cover-author { font-size: 14px; color: #5a6844; font-weight: 500; border-top: 1px solid #ebdcc5; padding-top: 8px; display: inline-block; }
+
+        /* 滿版跨頁插圖容器（隨父層自動伸縮） */
+        .page-full-spread { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 5; transform: translateZ(0); pointer-events: none; }
+        .spread-part { width: 50%; height: 100%; position: absolute; top: 0; overflow: hidden; background: #f7f0e1; backface-visibility: hidden; -webkit-backface-visibility: hidden; transform: translateZ(0); }
+        .spread-left-part { left: 0; border-radius: 24px 0 0 24px; border: 1px solid #ebdcc5; border-right: none; }
+        .spread-right-part { left: 50%; border-radius: 0 24px 24px 0; border: 1px solid #ebdcc5; border-left: none; }
+        
+        .full-img-part { width: 200%; height: 100%; position: absolute; top: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 24px; }
+        .full-img-part img { width: 100%; height: 100%; object-fit: cover; }
+        .full-img-part-left { left: 0; }
+        .full-img-part-right { left: -100%; }
+
+        /* 內容字體 */
+        .scene-title { color: #5a6844; font-weight: bold; font-size: 18px; border-bottom: 2px solid #ebdcc5; padding-bottom: 10px; margin-bottom: 20px; line-height: 1.2; }
+        .text-body { font-size: 16px; line-height: 1.9; text-align: justify; flex: 1; white-space: normal; word-break: break-all; color: #2b332c; }
+        
+        #ruler-container { position: absolute; visibility: hidden; height: auto; width: 400px; padding: 0; font-size: 16px; line-height: 1.9; font-family: "Noto Serif TC", "Songti TC", serif; word-break: break-all; }
+
+        /* 控制區 */
+        .controls { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); display: flex; gap: 15px; align-items: center; z-index: 200; flex-shrink: 0; }
+        .nav-btn { background: #fdfaf2; color: #5a6844; border: 1px solid #5a6844; padding: 10px 24px; border-radius: 20px; cursor: pointer; font-size: 14px; font-weight: bold; transition: all 0.2s; white-space: nowrap; }
+        .nav-btn:hover { background: #5a6844; color: #fdfaf2; }
+        .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .page-indicator { color: #5a6844; font-size: 14px; font-weight: bold; margin: 0 10px; min-width: 80px; text-align: center; }
+        #loading-msg { color: #5a6844; font-weight: bold; text-align: center; padding: 10px; font-size: 13px; }
+
+        /* 📱 RWD 手機版樣式 */
+        @media (max-width: 768px) {
+            body { padding: 10px; height: 100vh; overflow: hidden; }
+            #main-header { padding: 10px 15px; margin-bottom: 10px; border-radius: 15px; }
+            #main-header .sub-title { font-size: 11px; letter-spacing: 1px; }
+            #main-header .main-title { font-size: 14px; }
+            #main-content { flex-direction: column; }
+
+            #sidebar {
+                width: 100%; margin-right: 0; margin-bottom: 10px; padding: 10px 15px; border-radius: 20px; flex-direction: row; align-items: center; gap: 10px; box-sizing: border-box;
+            }
+            #sidebar h3 { border-bottom: none; padding-bottom: 0; margin-bottom: 0; font-size: 13px; white-space: nowrap; }
+            #book-list { display: flex; flex-direction: row; gap: 8px; margin-top: 0; overflow-x: auto; overflow-y: hidden; width: 100%; scrollbar-width: none; }
+            #book-list::-webkit-scrollbar { display: none; }
+
+            .book-btn { display: inline-block; width: auto; flex-shrink: 0; max-width: 150px; margin: 0; padding: 8px 12px; font-size: 11px; border-radius: 15px; }
+            
+            /* 💡 手機版舞台：同樣鎖死 16px 邊距 */
+            #stage-container { padding: 16px; padding-bottom: 70px; border-radius: 20px; }
+
+            /* 手機版移除所有 Scale 縮放，完全倚賴百分比計算，取消傾斜確保文字清晰 */
+            .book-outer { width: calc(100% - 32px); height: calc(100% - 16px); transform: none; }
+            
+            /* 手機單頁模式：寬度直接拉滿 100% */
+            .page-mobile-scroll {
+                width: 100%; height: 100%; padding: 30px 24px; box-sizing: border-box; background: #f7f0e1; position: absolute; top: 0; left: 0; border: 1px solid #ebdcc5; border-radius: 24px; display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden;
+            }
+            
+            .page-left { width: 100%; border-radius: 24px; border-right: 1px solid #ebdcc5; }
+            .page-right { width: 100%; left: 0; border-radius: 24px; border-left: 1px solid #ebdcc5; }
+            
+            .page-full-spread { width: 100%; }
+            .spread-part { width: 100%; left: 0; border-radius: 24px; border: 1px solid #ebdcc5; background: #f7f0e1; }
+            .full-img-part { width: 100%; border-radius: 24px; }
+            .full-img-part-right { left: 0; }
+            
+            /* 插圖完美不裁切顯示 */
+            .full-img-part img { width: 100%; height: 100%; object-fit: contain; padding: 10px; box-sizing: border-box; }
+            
+            .controls { bottom: 20px; gap: 8px; }
+            .nav-btn { padding: 8px 14px; font-size: 12px; border-radius: 15px; }
+            .page-indicator { font-size: 12px; min-width: 60px; margin: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <header id="main-header">
+        <div class="sub-title">2026 翰林國中藝術表演沙龍</div>
+        <h1 class="main-title">劇本的N種讀法-結合SEL與角色扮演課程實踐工作坊展示</h1>
+    </header>
+
+    <main id="main-content">
+        <nav id="sidebar">
+            <h3>學員劇本區</h3>
+            <div id="loading-msg">同步中...</div>
+            <div id="book-list"></div>
+        </nav>
+
+        <section id="stage-container">
+            <div class="book-outer" id="book-viewport"></div>
+
+            <div class="controls">
+                <button class="nav-btn home-btn" onclick="resetToCover()">🏠 封面</button>
+                <button class="nav-btn" id="prev-btn" onclick="goPrev()">⬅ 上一頁</button>
+                <span class="page-indicator" id="page-num">0 / 0</span>
+                <button class="nav-btn" id="next-btn" onclick="goNext()">下一頁 ➡</button>
+            </div>
+        </section>
+    </main>
+
+    <div id="ruler-container"></div>
+
+    <script>
+    const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS_sVLsu1HvFx4istfpCvkJ5jGQtd6NyxybbEb7L_1onPLlTCW-ntb-BOVhdDYJBjlyDsHO0ghmnXKn/pub?output=csv';
+
+    let rawData = [];
+    let currentTeacherIndex = -1;
+    let currentSpreadIndex = 0;
+    let teacherSpreads = [];
+
+    // 動態物理高度測量（自動讀取當前視窗實際寬度精準計算）
+    function paginateByHeight(text, title) {
+        if (!text || text.toString().trim() === '') return [];
+
+        const ruler = document.getElementById('ruler-container');
+        // 智慧型自適應：動態捕捉當前畫面上繪本單頁的實際物理像素寬度
+        const samplePage = document.querySelector('.page') || document.querySelector('.page-mobile-scroll');
+        if (samplePage) {
+            const computedStyle = window.getComputedStyle(samplePage);
+            const paddingX = parseFloat(computedStyle.paddingLeft) + parseFloat(computedStyle.paddingRight);
+            ruler.style.width = (samplePage.offsetWidth - paddingX) + 'px';
+        } else {
+            ruler.style.width = (window.innerWidth <= 768 ? '350px' : '420px');
+        }
+
+        let paragraphs = text.toString().split(/\r?\n/);
+        let pages = [];
+        let currentPageParagraphs = [];
+        
+        // 依據容器長度動態調整測量防火牆高度
+        const viewportHeight = document.getElementById('stage-container').offsetHeight;
+        const maxHeight = viewportHeight > 0 ? (viewportHeight * 0.6) : 380; 
+
+        for (let i = 0; i < paragraphs.length; i++) {
+            let p = paragraphs[i].trim();
+            if (p === '') { currentPageParagraphs.push('<br>'); continue; }
+
+            let testList = [...currentPageParagraphs, p];
+            ruler.innerHTML = testList.join('<br>');
+            
+            if (ruler.offsetHeight > maxHeight && currentPageParagraphs.length > 0) {
+                pages.push(currentPageParagraphs.join('<br>'));
+                currentPageParagraphs = [p];
+            } else {
+                currentPageParagraphs.push(p);
+            }
+        }
+        
+        if (currentPageParagraphs.length > 0) pages.push(currentPageParagraphs.join('<br>'));
+
+        return pages.map((pageText, index) => {
+            let displayTitle = title;
+            if (pages.length > 1) displayTitle += ` (${index + 1}/${pages.length})`;
+            return `<div class="scene-title">${displayTitle}</div><div class="text-body">${pageText}</div>`;
+        });
+    }
+
+    // 智慧標題產生器
+    function getActTitle(index, totalActs) {
+        const chineseNumbers = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
+        const fixedTitles = ['起', '承', '轉', '合'];
+        const numStr = chineseNumbers[index] || (index + 1);
+        
+        if (index < 4) {
+            return `【第${numStr}幕：${fixedTitles[index]}】`;
+        } else {
+            return `【第${numStr}幕】`;
+        }
+    }
+
+    function buildBookPages(data) {
+        const spreads = [];
+        
+        // 1. 封面
+        spreads.push({
+            type: 'cover-v3',
+            imgUrl: data.imgCover,
+            title: data.title,
+            author: data.name
+        });
+
+        // 2. 智慧動態遍歷所有幕數
+        const acts = data.acts || [];
+        acts.forEach((act, idx) => {
+            const textPages = paginateByHeight(act.text, act.title);
+            if (textPages.length === 0 && (!act.img || act.img.trim() === '')) return;
+
+            for (let i = 0; i < textPages.length; i += 2) {
+                let leftContent = textPages[i];
+                let rightContent = textPages[i+1] ? textPages[i+1] : ''; 
+                
+                spreads.push({
+                    type: 'standard',
+                    left: { type: 'text', content: leftContent },
+                    right: { type: 'text', content: rightContent }
+                });
+            }
+
+            if (act.img && act.img.trim() !== '') {
+                spreads.push({
+                    type: 'full-spread-image',
+                    imgUrl: act.img,
+                    isFinalAct: idx === acts.length - 1
+                });
+            }
+        });
+
+        return spreads;
+    }
+
+    function renderPage() {
+        const viewport = document.getElementById('book-viewport');
+        viewport.innerHTML = '';
+        
+        if (teacherSpreads.length === 0) return;
+        const spread = teacherSpreads[currentSpreadIndex];
+        const isMobile = window.innerWidth <= 768;
+        
+        if (spread.type === 'cover-v3') {
+            if (!isMobile) {
+                const leftPage = document.createElement('div');
+                leftPage.className = `page page-left line-left`;
+                leftPage.style.opacity = '0';
+                viewport.appendChild(leftPage);
+            }
+            
+            const rightPage = document.createElement('div');
+            rightPage.className = `page ${isMobile ? 'page-left' : 'page-right line-right'}`;
+            rightPage.style.padding = '0';
+            rightPage.innerHTML = `
+                <div class="cover-full-container">
+                    <img class="cover-bg-img" src="${spread.imgUrl}" onerror="this.src='https://picsum.photos/500/600';">
+                    <div class="cover-text-box">
+                        <span class="cover-title">《${spread.title || '未命名劇本'}》</span>
+                        <span class="cover-author">編劇：${spread.author || '未知'} 老師</span>
+                    </div>
+                </div>`;
+            viewport.appendChild(rightPage);
+            
+        } else if (spread.type === 'standard') {
+            if (isMobile) {
+                const combinedPage = document.createElement('div');
+                combinedPage.className = 'page-mobile-scroll';
+                
+                let htmlBuffer = spread.left ? spread.left.content : '';
+                if (spread.right && spread.right.content.trim() !== '') {
+                    htmlBuffer += `<hr style="border:0; border-top:1px dashed #ebdcc5; margin: 20px 0;">` + spread.right.content;
+                }
+                
+                combinedPage.innerHTML = htmlBuffer;
+                viewport.appendChild(combinedPage);
+            } else {
+                const leftPage = document.createElement('div');
+                leftPage.className = `page page-left line-left`;
+                leftPage.innerHTML = spread.left ? spread.left.content : '';
+                if(!spread.left) leftPage.style.opacity = '0';
+                
+                const rightPage = document.createElement('div');
+                rightPage.className = `page page-right line-right`;
+                rightPage.innerHTML = spread.right.content !== '' ? spread.right.content : '<div style="display:flex;height:100%;align-items:center;justify-content:center;color:#888;font-style:italic;text-align:center;padding:40px;">精彩劇本內容請翻閱下頁</div>';
+
+                viewport.appendChild(leftPage);
+                viewport.appendChild(rightPage);
+            }
+            
+        } else if (spread.type === 'full-spread-image') {
+            const fullSpread = document.createElement('div');
+            fullSpread.className = 'page-full-spread';
+            
+            const leftPart = document.createElement('div');
+            leftPart.className = 'spread-part spread-left-part line-left';
+            leftPart.innerHTML = `
+                <div class="full-img-part full-img-part-left">
+                    <img src="${spread.imgUrl}" onerror="this.parentElement.innerHTML='插圖載入失敗，請檢查網址'">
+                </div>`;
+                
+            const rightPart = document.createElement('div');
+            rightPart.className = `spread-part ${isMobile ? "spread-left-part" : "spread-right-part line-right"}`;
+            rightPart.innerHTML = `
+                <div class="full-img-part ${isMobile ? "full-img-part-left" : "full-img-part-right"}">
+                    <img src="${spread.imgUrl}" onerror="this.parentElement.innerHTML='插圖載入失敗，請檢查網址'">
+                    ${spread.isFinalAct ? '<div style="position:absolute;bottom:25px;right:25px;background:rgba(247,240,225,0.95);padding:10px 20px;border-radius:12px;font-size:14px;font-weight:bold;color:#3d4a3e;z-index:200;box-shadow:0 10px 20px rgba(0,0,0,0.15);">【全劇終】</div>' : ''}
+                </div>`;
+            
+            if (isMobile) {
+                fullSpread.appendChild(rightPart);
+            } else {
+                fullSpread.appendChild(leftPart);
+                fullSpread.appendChild(rightPart);
+            }
+            viewport.appendChild(fullSpread);
+        }
+
+        document.getElementById('page-num').innerText = `${currentSpreadIndex + 1} / ${teacherSpreads.length}`;
+        document.getElementById('prev-btn').disabled = currentSpreadIndex === 0;
+        document.getElementById('next-btn').disabled = currentSpreadIndex === teacherSpreads.length - 1;
+    }
+
+    function selectTeacher(index) {
+        if (index < 0 || index >= rawData.length) return;
+        currentTeacherIndex = index;
+        currentSpreadIndex = 0;
+        teacherSpreads = buildBookPages(rawData[index]);
+        document.querySelectorAll('.book-btn').forEach((btn, i) => btn.classList.toggle('active', i === index));
+        renderPage();
+        
+        const activeBtn = document.querySelectorAll('.book-btn')[index];
+        if(activeBtn && window.innerWidth <= 768) {
+            activeBtn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        }
+    }
+
+    function goNext() { if(currentSpreadIndex < teacherSpreads.length - 1) { currentSpreadIndex++; renderPage(); } }
+    function goPrev() { if(currentSpreadIndex > 0) { currentSpreadIndex--; renderPage(); } }
+    function resetToCover() { currentSpreadIndex = 0; renderPage(); }
+
+    function parseCSV(text) {
+        let lines = [];
+        let row = [""];
+        let inQuotes = false;
+        for (let i = 0; i < text.length; i++) {
+            let c = text[i];
+            let next = text[i+1];
+            if (c === '"') {
+                if (inQuotes && next === '"') { row[row.length - 1] += '"'; i++; }
+                else { inQuotes = !inQuotes; }
+            } else if (c === ',' && !inQuotes) {
+                row.push('');
+            } else if ((c === '\r' || c === '\n') && !inQuotes) {
+                if (c === '\r' && next === '\n') { i++; }
+                lines.push(row);
+                row = [''];
+            } else {
+                row[row.length - 1] += c;
+            }
+        }
+        if (row.length > 1 || row[0] !== '') lines.push(row);
+        return lines;
+    }
+
+    async function loadCloudData() {
+        try {
+            const response = await fetch(SHEET_URL);
+            const text = await response.text();
+            const rows = parseCSV(text);
+            
+            let tempRawData = [];
+            rows.forEach((cells, index) => {
+                if(index > 0 && cells && cells[0] && cells[0].trim() !== '' && cells[0] !== "老師姓名") {
+                    
+                    let actsData = [];
+                    let actIndex = 0;
+                    
+                    for (let start = 3; start < cells.length; start += 2) {
+                        let textVal = cells[start] ? cells[start].trim() : '';
+                        let imgVal = cells[start + 1] ? cells[start + 1].trim() : '';
+                        
+                        if (textVal !== '' || imgVal !== '') {
+                            actsData.push({
+                                title: getActTitle(actIndex, 0),
+                                text: textVal,
+                                img: imgVal
+                            });
+                            actIndex++;
+                        }
+                    }
+
+                    tempRawData.push({
+                        name: cells[0].trim(), 
+                        title: cells[1] ? cells[1].trim() : '未命名劇本', 
+                        imgCover: cells[2] ? cells[2].trim() : '',
+                        acts: actsData 
+                    });
+                }
+            });
+
+            if(tempRawData.length > 0) {
+                rawData = tempRawData;
+                const list = document.getElementById('book-list');
+                list.innerHTML = '';
+                
+                rawData.forEach((data, i) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'book-btn';
+                    btn.innerText = `📖 ${data.name} 老師 - ${data.title}`;
+                    btn.onclick = () => selectTeacher(i);
+                    list.appendChild(btn);
+                });
+
+                if(currentTeacherIndex === -1) {
+                    selectTeacher(0);
+                } else {
+                    teacherSpreads = buildBookPages(rawData[currentTeacherIndex]);
+                    renderPage();
+                }
+                document.getElementById('loading-msg').style.display = 'none';
+            }
+        } catch (e) {
+            console.error(e);
+            document.getElementById('loading-msg').innerText = '同步失敗';
+        }
+    }
+
+    // 當視窗縮放或手機旋轉時，即時重算物理高度防漏字
+    window.onresize = () => { 
+        if(currentTeacherIndex !== -1 && rawData[currentTeacherIndex]) {
+            teacherSpreads = buildBookPages(rawData[currentTeacherIndex]);
+        }
+        renderPage(); 
+    };
+
+    window.onload = () => {
+        loadCloudData();
+        setInterval(loadCloudData, 20000); 
+    };
+    </script>
+</body>
+</html>
